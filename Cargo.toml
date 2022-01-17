@@ -1,8 +1,14 @@
 [package]
 name = "graphql_server_demo"
 version = "0.1.0"
+authors = ["Jesse Hallett <jesse@sitr.us>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-graphql = "3.0"
+async-graphql-warp = "3.0"
+tokio = { version = "1.15", features = ["macros", "rt-multi-thread"] }
+warp = "0.3"
+http = "0.2"
