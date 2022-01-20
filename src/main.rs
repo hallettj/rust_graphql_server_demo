@@ -1,3 +1,5 @@
+mod db;
+
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
@@ -17,7 +19,9 @@ impl Query {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), std::io::Error> {
+    db::init_db().await?;
+
     let schema = Schema::new(Query, EmptyMutation, EmptySubscription);
 
     println!("Playground: http://localhost:8000");
@@ -54,4 +58,6 @@ async fn main() {
         });
 
     warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
+
+    Ok(())
 }
