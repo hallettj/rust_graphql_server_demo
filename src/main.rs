@@ -3,8 +3,12 @@ mod db;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
+use color_eyre::Report;
 use http::StatusCode;
 use std::convert::Infallible;
+use tracing::info;
+use tracing_subscriber::filter::EnvFilter;
+use tracing_subscriber::fmt::format;
 use warp::Rejection;
 use warp::{http::Response as HttpResponse, Filter};
 
@@ -18,13 +22,14 @@ impl Query {
     }
 }
 
+const PORT: u16 = 8000;
+
 #[tokio::main]
-async fn main() -> Result<(), std::io::Error> {
+async fn main() -> Result<(), Report> {
+    setup()?;
     db::init_db().await?;
 
     let schema = Schema::new(Query, EmptyMutation, EmptySubscription);
-
-    println!("Playground: http://localhost:8000");
 
     let graphql_post = async_graphql_warp::graphql(schema).and_then(
         |(schema, request): (
@@ -57,7 +62,25 @@ async fn main() -> Result<(), std::io::Error> {
             ))
         });
 
-    warp::serve(routes).run(([0, 0, 0, 0], 8000)).await;
+    info!(port=PORT, url="http://localhost:{PORT}", "Server has started - open the playground in the browser or access the API at http://localhost:8000");
 
+    warp::serve(routes).run(([0, 0, 0, 0], PORT)).await;
+
+    Ok(())
+}
+
+fn setup() -> Result<(), Report> {
+    if std::env::var("RUST_LIB_BACKTRACE").is_err() {
+        std::env::set_var("RUST_LIB_BACKTRACE", "full")
+    }
+    color_eyre::install()?;
+
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info")
+    }
+    tracing_subscriber::fmt::fmt()
+        .event_format(format().pretty())
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
     Ok(())
 }
