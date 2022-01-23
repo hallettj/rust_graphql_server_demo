@@ -1,17 +1,15 @@
+use color_eyre::Report;
 use sqlx::postgres::PgPoolOptions;
 
-pub async fn init_db() -> Result<(), sqlx::Error> {
+pub async fn init_db() -> Result<(), Report> {
+    let database_url = std::env::var("DATABASE_URL")?;
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://postgres:password@localhost:44544/postgres").await?;
+        .connect(&database_url)
+        .await?;
 
     sqlx::migrate!().run(&pool).await?;
-
-    let row: (i64,) = sqlx::query_as("SELECT $1")
-        .bind(150_i64)
-        .fetch_one(&pool).await?;
-
-    assert_eq!(row.0, 150);
 
     Ok(())
 }

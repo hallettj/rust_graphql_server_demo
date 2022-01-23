@@ -4,6 +4,7 @@ use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use color_eyre::Report;
+use dotenv;
 use http::StatusCode;
 use std::convert::Infallible;
 use tracing::info;
@@ -22,10 +23,9 @@ impl Query {
     }
 }
 
-const PORT: u16 = 8000;
-
 #[tokio::main]
 async fn main() -> Result<(), Report> {
+    dotenv::dotenv()?;
     setup()?;
     db::init_db().await?;
 
@@ -62,23 +62,18 @@ async fn main() -> Result<(), Report> {
             ))
         });
 
-    let url = format!("http://localhost:{PORT}");
-    info!(port=PORT, %url, "Server has started - open the playground in the browser or access the API at the given url");
+    let port: u16 = std::env::var("PORT")?.parse()?;
+    let url = format!("http://localhost:{port}");
 
-    warp::serve(routes).run(([0, 0, 0, 0], PORT)).await;
+    info!(%port, %url, "Server has started - open the playground in the browser or access the API at the given url");
+
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 
     Ok(())
 }
 
 fn setup() -> Result<(), Report> {
-    if std::env::var("RUST_LIB_BACKTRACE").is_err() {
-        std::env::set_var("RUST_LIB_BACKTRACE", "full")
-    }
     color_eyre::install()?;
-
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info,sqlx=warn")
-    }
     tracing_subscriber::fmt::fmt()
         .event_format(format().pretty())
         .with_env_filter(EnvFilter::from_default_env())

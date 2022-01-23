@@ -671,6 +671,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-warp",
  "color-eyre",
+ "dotenv",
  "http",
  "sqlx",
  "tokio",
