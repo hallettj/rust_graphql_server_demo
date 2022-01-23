@@ -62,7 +62,8 @@ async fn main() -> Result<(), Report> {
             ))
         });
 
-    info!(port=PORT, url="http://localhost:{PORT}", "Server has started - open the playground in the browser or access the API at http://localhost:8000");
+    let url = format!("http://localhost:{PORT}");
+    info!(port=PORT, %url, "Server has started - open the playground in the browser or access the API at the given url");
 
     warp::serve(routes).run(([0, 0, 0, 0], PORT)).await;
 
@@ -76,7 +77,7 @@ fn setup() -> Result<(), Report> {
     color_eyre::install()?;
 
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info")
+        std::env::set_var("RUST_LOG", "info,sqlx=warn")
     }
     tracing_subscriber::fmt::fmt()
         .event_format(format().pretty())
