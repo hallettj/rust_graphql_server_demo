@@ -1,7 +1,8 @@
 mod db;
+mod schema;
 
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
+use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use color_eyre::Report;
 use dotenv;
@@ -13,27 +14,17 @@ use tracing_subscriber::fmt::format;
 use warp::Rejection;
 use warp::{http::Response as HttpResponse, Filter};
 
-struct Query;
-
-#[Object]
-impl Query {
-    /// Returns the sum of a and b
-    async fn add(&self, a: i32, b: i32) -> i32 {
-        a + b
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Report> {
     dotenv::dotenv()?;
     setup()?;
     db::init_db().await?;
 
-    let schema = Schema::new(Query, EmptyMutation, EmptySubscription);
+    let schema = Schema::new(schema::Query, EmptyMutation, EmptySubscription);
 
     let graphql_post = async_graphql_warp::graphql(schema).and_then(
         |(schema, request): (
-            Schema<Query, EmptyMutation, EmptySubscription>,
+            Schema<schema::Query, EmptyMutation, EmptySubscription>,
             async_graphql::Request,
         )| async move {
             Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
