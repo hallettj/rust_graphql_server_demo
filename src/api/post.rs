@@ -16,7 +16,6 @@ pub struct Post {
 #[ComplexObject]
 impl Post {
     async fn author(&self, ctx: &Context<'_>) -> Result<User> {
-        let db = get_db_from_ctx(ctx)?;
         let user = sqlx::query_as!(
             User,
             "
@@ -24,7 +23,7 @@ impl Post {
             ",
             self.author_id,
         )
-        .fetch_one(db)
+        .fetch_one(get_db_from_ctx(ctx)?)
         .await?;
         Ok(user)
     }
