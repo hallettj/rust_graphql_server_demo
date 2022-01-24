@@ -2,7 +2,7 @@ mod api;
 mod db;
 
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql::{EmptyMutation, EmptySubscription, Schema};
+use async_graphql::{EmptySubscription, Schema};
 use async_graphql_warp::{GraphQLBadRequest, GraphQLResponse};
 use color_eyre::Report;
 use dotenv;
@@ -14,19 +14,21 @@ use tracing_subscriber::fmt::format;
 use warp::Rejection;
 use warp::{http::Response as HttpResponse, Filter};
 
+use api::{Mutation, Query};
+
 #[tokio::main]
 async fn main() -> Result<(), Report> {
     dotenv::dotenv()?;
     setup()?;
     let db_pool = db::init_db().await?;
 
-    let schema = Schema::build(api::Query, EmptyMutation, EmptySubscription)
+    let schema = Schema::build(Query, Mutation, EmptySubscription)
         .data(db_pool)
         .finish();
 
     let graphql_post = async_graphql_warp::graphql(schema).and_then(
         |(schema, request): (
-            Schema<api::Query, EmptyMutation, EmptySubscription>,
+            Schema<Query, Mutation, EmptySubscription>,
             async_graphql::Request,
         )| async move {
             Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
