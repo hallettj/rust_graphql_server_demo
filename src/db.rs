@@ -1,7 +1,8 @@
+use async_graphql::Context;
 use color_eyre::Report;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-pub async fn init_db() -> Result<(), Report> {
+pub async fn init_db() -> Result<Pool<Postgres>, Report> {
     let database_url = std::env::var("DATABASE_URL")?;
 
     let pool = PgPoolOptions::new()
@@ -11,5 +12,9 @@ pub async fn init_db() -> Result<(), Report> {
 
     sqlx::migrate!().run(&pool).await?;
 
-    Ok(())
+    Ok(pool)
+}
+
+pub fn get_db_from_ctx<'a>(ctx: &Context<'a>) -> Result<&'a Pool<Postgres>, async_graphql::Error> {
+    ctx.data::<Pool<Postgres>>()
 }

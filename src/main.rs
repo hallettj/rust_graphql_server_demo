@@ -1,5 +1,5 @@
+mod api;
 mod db;
-mod schema;
 
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::{EmptyMutation, EmptySubscription, Schema};
@@ -18,13 +18,15 @@ use warp::{http::Response as HttpResponse, Filter};
 async fn main() -> Result<(), Report> {
     dotenv::dotenv()?;
     setup()?;
-    db::init_db().await?;
+    let db_pool = db::init_db().await?;
 
-    let schema = Schema::new(schema::Query, EmptyMutation, EmptySubscription);
+    let schema = Schema::build(api::Query, EmptyMutation, EmptySubscription)
+        .data(db_pool)
+        .finish();
 
     let graphql_post = async_graphql_warp::graphql(schema).and_then(
         |(schema, request): (
-            Schema<schema::Query, EmptyMutation, EmptySubscription>,
+            Schema<api::Query, EmptyMutation, EmptySubscription>,
             async_graphql::Request,
         )| async move {
             Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
