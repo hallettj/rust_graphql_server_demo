@@ -15,6 +15,6 @@ pub async fn init_db() -> Result<Pool<Postgres>, Report> {
     Ok(pool)
 }
 
-pub fn get_db_from_ctx<'a>(ctx: &Context<'a>) -> Result<&'a Pool<Postgres>, async_graphql::Error> {
+pub fn get_db<'a>(ctx: &Context<'a>) -> Result<&'a Pool<Postgres>, async_graphql::Error> {
     ctx.data::<Pool<Postgres>>()
 }

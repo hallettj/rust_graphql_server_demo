@@ -1,7 +1,7 @@
 use async_graphql::{ComplexObject, Context, Result, SimpleObject};
 
 use super::user::User;
-use crate::db::get_db_from_ctx;
+use crate::db::get_db;
 
 #[derive(Debug, SimpleObject)]
 #[graphql(complex)]
@@ -23,7 +23,7 @@ impl Post {
             ",
             self.author_id,
         )
-        .fetch_one(get_db_from_ctx(ctx)?)
+        .fetch_one(get_db(ctx)?)
         .await?;
         Ok(user)
     }

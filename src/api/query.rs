@@ -1,7 +1,7 @@
 use async_graphql::{Context, Object, Result};
 
 use super::{post::Post, user::User};
-use crate::db::get_db_from_ctx;
+use crate::db::get_db;
 
 pub struct Query;
 
@@ -17,7 +17,7 @@ impl Query {
             ",
             author_id
         )
-        .fetch_all(get_db_from_ctx(ctx)?)
+        .fetch_all(get_db(ctx)?)
         .await?;
         Ok(posts)
     }
@@ -25,7 +25,7 @@ impl Query {
     /// Get every user
     async fn users(&self, ctx: &Context<'_>) -> Result<Vec<User>> {
         let users = sqlx::query_as!(User, "select id, username from users")
-            .fetch_all(get_db_from_ctx(ctx)?)
+            .fetch_all(get_db(ctx)?)
             .await?;
         Ok(users)
     }

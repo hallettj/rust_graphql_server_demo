@@ -1,7 +1,7 @@
 use async_graphql::{Context, Object, Result};
 
 use super::{post::Post, user::User};
-use crate::db::get_db_from_ctx;
+use crate::db::get_db;
 
 pub struct Mutation;
 
@@ -17,14 +17,14 @@ impl Mutation {
             ",
             username
         )
-        .fetch_one(get_db_from_ctx(ctx)?)
+        .fetch_one(get_db(ctx)?)
         .await?;
         Ok(user)
     }
 
     async fn delete_user(&self, ctx: &Context<'_>, id: i32) -> Result<bool> {
         sqlx::query!("delete from users where id = $1", id)
-            .execute(get_db_from_ctx(ctx)?)
+            .execute(get_db(ctx)?)
             .await?;
         Ok(true)
     }
@@ -45,14 +45,14 @@ impl Mutation {
             author_id,
             content,
         )
-        .fetch_one(get_db_from_ctx(ctx)?)
+        .fetch_one(get_db(ctx)?)
         .await?;
         Ok(post)
     }
 
     async fn delete_post(&self, ctx: &Context<'_>, id: i32) -> Result<bool> {
         sqlx::query!("delete from posts where id = $1", id)
-            .execute(get_db_from_ctx(ctx)?)
+            .execute(get_db(ctx)?)
             .await?;
         Ok(true)
     }
