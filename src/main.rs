@@ -11,8 +11,11 @@ use std::convert::Infallible;
 use tracing::info;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::fmt::format;
-use warp::Rejection;
-use warp::{http::Response as HttpResponse, Filter};
+use warp::{
+    http::{Response as HttpResponse, Uri},
+    Filter,
+};
+use warp::{Rejection, Reply};
 
 use api::{Mutation, Query};
 
@@ -26,37 +29,7 @@ async fn main() -> Result<(), Report> {
         .data(db_pool)
         .finish();
 
-    let graphql_post = async_graphql_warp::graphql(schema).and_then(
-        |(schema, request): (
-            Schema<Query, Mutation, EmptySubscription>,
-            async_graphql::Request,
-        )| async move {
-            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
-        },
-    );
-
-    let graphql_playground = warp::path::end().and(warp::get()).map(|| {
-        HttpResponse::builder()
-            .header("content-type", "text/html")
-            .body(playground_source(GraphQLPlaygroundConfig::new("/")))
-    });
-
-    let routes = graphql_playground
-        .or(graphql_post)
-        .recover(|err: Rejection| async move {
-            if let Some(GraphQLBadRequest(err)) = err.find() {
-                return Ok::<_, Infallible>(warp::reply::with_status(
-                    err.to_string(),
-                    StatusCode::BAD_REQUEST,
-                ));
-            }
-
-            Ok(warp::reply::with_status(
-                "INTERNAL_SERVER_ERROR".to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ))
-        });
-
+    let routes = define_routes(schema);
     let port: u16 = std::env::var("PORT")?.parse()?;
     let url = format!("http://localhost:{port}");
 
@@ -65,6 +38,47 @@ async fn main() -> Result<(), Report> {
     warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 
     Ok(())
+}
+
+fn define_routes(
+    schema: Schema<Query, Mutation, EmptySubscription>,
+) -> warp::filters::BoxedFilter<(impl Reply,)> {
+    let graphql_api = async_graphql_warp::graphql(schema)
+        .and_then(
+            |(schema, request): (
+                Schema<Query, Mutation, EmptySubscription>,
+                async_graphql::Request,
+            )| async move {
+                Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
+            },
+        )
+        .recover(|err: Rejection| async move {
+            if let Some(GraphQLBadRequest(err)) = err.find() {
+                return Ok::<_, Infallible>(warp::reply::with_status(
+                    err.to_string(),
+                    StatusCode::BAD_REQUEST,
+                ));
+            }
+            Ok(warp::reply::with_status(
+                "INTERNAL_SERVER_ERROR".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ))
+        });
+
+    let graphql_playground = || {
+        HttpResponse::builder()
+            .header("content-type", "text/html")
+            .body(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
+    };
+
+    warp::path!("graphql")
+        .and(
+            warp::post()
+                .and(graphql_api)
+                .or(warp::get().map(graphql_playground)),
+        )
+        .or(warp::path!().map(|| warp::redirect(Uri::from_static("/graphql"))))
+        .boxed()
 }
 
 fn setup() -> Result<(), Report> {
