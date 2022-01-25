@@ -8,10 +8,17 @@ pub struct Query;
 #[Object]
 impl Query {
     /// Get every post
-    async fn posts(&self, ctx: &Context<'_>) -> Result<Vec<Post>> {
-        let posts = sqlx::query_as!(Post, "select id, author_id, content from posts")
-            .fetch_all(get_db_from_ctx(ctx)?)
-            .await?;
+    async fn posts(&self, ctx: &Context<'_>, author_id: Option<i32>) -> Result<Vec<Post>> {
+        let posts = sqlx::query_as!(
+            Post,
+            "
+            select id, author_id, content from posts
+            where author_id = coalesce($1, author_id)
+            ",
+            author_id
+        )
+        .fetch_all(get_db_from_ctx(ctx)?)
+        .await?;
         Ok(posts)
     }
 
