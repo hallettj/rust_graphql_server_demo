@@ -25,8 +25,11 @@ it again.
 
     $ docker start graphql_server_demo_db
 
-The app automatically creates the appropriate database schema when it is
-started.
+The app will not compile until migrations are applied. To do that you need to
+install `sqlx-cli`.
+
+    $ cargo install sqlx-cli
+    $ sqlx migrate run
 
 ## Running
 
